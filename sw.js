@@ -1,5 +1,5 @@
 // sw.js - 태하관아침점호v2 Service Worker
-const CACHE_NAME = 'taehagwan-morning-v1';
+const CACHE_NAME = 'taehagwan-morning-v3';
 const ASSETS = [
   './index.html',
   './manifest.json',
