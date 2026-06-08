@@ -1,4 +1,4 @@
-// sw.js - 태하관아침점호v2 Service Worker
+// sw.js - 태하관아침점호v1 Service Worker
 const CACHE_NAME = 'taehagwan-morning-v3';
 const ASSETS = [
   './index.html',
