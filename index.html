@@ -367,9 +367,10 @@
                 // 두 단계로 시도: (a) 파일 공유, (b) 파일 공유 불가 시 텍스트 공유
                 if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
+                        // [v2 수정] text 항목을 제거: text가 있으면 퀵쉐어가 '텍스트(클립보드) 공유'로
+                        // 인식하여 받는 기기에 파일이 저장되지 않고 복사/공유 버튼만 표시됨.
+                        // 파일만 공유하면 받는 기기의 '다운로드 > Quick Share' 폴더에 .txt로 저장됨.
                         await navigator.share({ 
-                            title: '기숙사 점호 동기화', 
-                            text: `점호동기화_${currentDateStr}`,
                             files: [file] 
                         });
                         return; // 공유 성공 (퀵쉐어/메신저 전송 완료)
