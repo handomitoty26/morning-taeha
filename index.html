@@ -1197,6 +1197,22 @@
             }
             const totalAbsentCount = recordedAbsentCount + missingStudents.length;
 
+            // [v1.4] 불참자 명단 - 호실순 정렬 (공유용)
+            const allAbsentRaw = [
+                ...lateAbsentStudents.map(s => ({ text: s, room: parseInt(studentsInfo[Object.keys(attendanceLog).find(id => attendanceLog[id]==='점호불참' && s.startsWith(id))]?.room||'9999')||9999, tag:'[지각입력]' })),
+                ...missingStudents.map(s => { const id = s.split(' ')[0]; return { text: s, room: parseInt(studentsInfo[id]?.room||'9999')||9999, tag:'' }; })
+            ];
+            const allAbsentByRoom = [...allAbsentRaw].sort((a,b)=>a.room-b.room);
+
+            // 화면 표시: 학번순 (기존 그대로)
+            const allAbsentList = [...lateAbsentStudents, ...missingStudents];
+
+            // 호실순 공유 텍스트 생성 (전역 저장 → shareAbsent()에서 사용)
+            window._absentShareText = totalAbsentCount === 0 ? '' :
+                '[' + currentDateStr + ' 아침점호 불참자]\n총 ' + totalAbsentCount + '명\n\n' +
+                allAbsentByRoom.map(s => s.text).join('\n');
+
+
             let resultHtml = `
                 <div style="background:#f8f9fa; padding:12px; border-radius:10px; margin-bottom:15px; text-align:center;">
                     <b>총원:</b> ${total}명 / <b>부재:</b> ${absent}명 / <b>대상:</b> ${target}명
@@ -1207,9 +1223,25 @@
             `;
             
             if (lateStudents.length > 0) resultHtml += `<strong style="color:#f39c12;">[ 지각자 명단 ]</strong><br>${lateStudents.join("<br>")}<br><br>`;
-            // [버그수정4] 점호불참(지각입력)과 미입력(완전불참)을 함께 표시
-            const allAbsentList = [...lateAbsentStudents, ...missingStudents];
-            if (allAbsentList.length > 0) resultHtml += `<strong style="color:#c0392b;">[ 불참자 명단 ]</strong><br>${allAbsentList.join("<br>")}`;
+            // [버그수정4] 점호불참(지각입력)과 미입력(완전불참)을 함께 표시 (학번순)
+            if (allAbsentList.length > 0) resultHtml += `<strong style="color:#c0392b;">[ 불참자 명단 ] (학번순)</strong><br>${allAbsentList.join("<br>")}<br><br>`;
+
+            // [v1.4] 불참자 호실순 명단 + 카카오톡 공유 버튼
+            if (totalAbsentCount > 0) {
+                resultHtml += `
+                <div style="border-top:2px solid #e74c3c; padding-top:12px; margin-top:4px;">
+                    <strong style="color:#c0392b;">[ 불참자 명단 ] (호실순 — 순찰용)</strong><br>
+                    <div style="margin:8px 0 12px 0; line-height:1.8;">
+                        ${allAbsentByRoom.map(s=>s.text).join('<br>')}
+                    </div>
+                    <button onclick="shareAbsent()" style="
+                        width:100%; padding:14px; font-size:17px; font-weight:900;
+                        background:#fee500; color:#3c1e1e; border:none; border-radius:12px;
+                        cursor:pointer; letter-spacing:0.5px;">
+                        💬 카카오톡으로 공유
+                    </button>
+                </div>`;
+            }
 
             document.getElementById('modalTitle').innerText = `점호 종료 결과 (${currentDateStr})`;
             document.getElementById('modalBody').innerHTML = resultHtml;
@@ -1227,6 +1259,28 @@
             } catch(err) {
                 // [버그수정5] localStorage 용량 초과 처리
                 alert("저장 공간이 부족합니다. '기록/백업 관리' 메뉴에서 엑셀 백업 후 오래된 기록을 정리해주세요.");
+            }
+        }
+
+        // [v1.4] 불참자 명단(호실순) 텍스트를 카카오톡 등 앱으로 공유
+        async function shareAbsent() {
+            const text = window._absentShareText;
+            if (!text) { alert("공유할 불참자 명단이 없습니다."); return; }
+            // Android 갤럭시탭: navigator.share({text})로 시스템 공유 시트(카카오톡 선택 가능)
+            if (navigator.share) {
+                try {
+                    await navigator.share({ text: text });
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                }
+            }
+            // PC/공유 미지원 환경: 클립보드 복사로 폴백
+            try {
+                await navigator.clipboard.writeText(text);
+                alert("불참자 명단이 클립보드에 복사되었습니다. 카카오톡 대화방에 붙여넣기 하세요.");
+            } catch (e) {
+                prompt("아래 내용을 복사해서 카카오톡에 붙여넣으세요:", text);
             }
         }
 
